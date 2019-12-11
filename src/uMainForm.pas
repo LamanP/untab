@@ -7,6 +7,13 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, uFileDropper;
 
 type
+  TStats = record
+    files: Integer;
+    tabs: Integer;
+    lines: Integer;
+    SpacesTrimmed: Integer;
+  end;
+
   TMainForm = class(TForm, IFileReceiver)
     lbFiles: TListBox;
     Splitter1: TSplitter;
@@ -26,9 +33,9 @@ type
     FFileDropHandler: IFileDropHandler;
     FTabSize: Integer;
     procedure DropFiles(Sender: IFileDropHandler; Files: TStrings);
-    procedure Convert(const Filename: string); overload;
-    procedure Convert(src, dst: TStrings); overload;
-    function ConvertLine(const Line: string): string;
+    function Convert(const Filename: string; var Stats: TStats): TStats; overload;
+    procedure Convert(src, dst: TStrings; var Stats: TStats); overload;
+    function ConvertLine(const Line: string; var Stats: TStats): string;
   protected
     procedure CreateWnd; override;
   public
@@ -51,14 +58,28 @@ end;
 procedure TMainForm.btnGoClick(Sender: TObject);
 var
   I : Integer;
+  deltaStats, stats: TStats;
 resourcestring
-  SDone = 'Done';
+  SFileDone = 'Lines: %8d, Tabs removed: %8d, Blanks trimmed: %8d. "%s"';
+  SDone = 'All done, Files: %8d, Lines: %8d, Tabs removed: %8d, Blanks trimmed: %8d.';
 begin
   if not TryStrToInt(editTabsize.Text, FTabSize) or (FTabSize <= 0) then
     raise Exception.Create('Invalid tab size');
+
+  FillChar(stats, SizeOf(stats), 0);
+  memoLog.Clear;
   for I := 0 to lbFiles.Items.Count - 1 do
-    Convert(lbFiles.Items[I]);
-  memoLog.Lines.Add(SDone);
+  begin
+    deltaStats := Convert(lbFiles.Items[I], stats);
+    if (deltaStats.tabs > 0) or (deltaStats.SpacesTrimmed > 0) then
+    memoLog.Lines.Add(Format(SFileDone, [
+      deltaStats.lines,
+      deltaStats.tabs,
+      deltaStats.SpacesTrimmed,
+      lbFiles.Items[I]
+    ]));
+  end;
+  memoLog.Lines.Add(Format(SDone, [stats.files, stats.lines, stats.tabs, stats.SpacesTrimmed]));
 end;
 
 constructor TMainForm.Create(AOwner: TComponent);
@@ -78,11 +99,14 @@ begin
   FFileDropHandler.SetWindowHandle(Handle);
 end;
 
-procedure TMainForm.Convert(const Filename: string);
+// Returns the delta in stats
+function TMainForm.Convert(const Filename: string; var Stats: TStats): TStats;
 var
   src,dst: TStrings;
   BackupFile: string;
 begin
+  Result := Stats;
+  Inc(Stats.files);
   src := TStringList.Create;
   try
     dst := TStringList.Create;
@@ -96,7 +120,7 @@ begin
         ForceDirectories(BackupFile);
         src.SaveToFile(BackupFile + '\' + ExtractFileName(Filename));
       end;
-      Convert(src, dst);
+      Convert(src, dst, stats);
       dst.SaveToFile(Filename);
     finally
       dst.Free;
@@ -104,9 +128,13 @@ begin
   finally
     src.Free;
   end;
+  Result.files := Stats.files - Result.files;
+  Result.tabs := Stats.tabs - Result.tabs;
+  Result.lines := Stats.lines - Result.lines;
+  Result.SpacesTrimmed := Stats.SpacesTrimmed - Result.SpacesTrimmed;
 end;
 
-procedure TMainForm.Convert(src, dst: TStrings);
+procedure TMainForm.Convert(src, dst: TStrings; var Stats: TStats);
 var
   I: Integer;
   S: string;
@@ -114,14 +142,19 @@ begin
   dst.Clear;
   for I := 0 to src.Count - 1 do
   begin
-    S := ConvertLine(src[I]);
+    Inc(Stats.lines);
+    S := ConvertLine(src[I], stats);
     if CbTrim.Checked then
-      S := Trim(S);
+    begin
+      Inc(Stats.SpacesTrimmed, Length(S));
+      S := TrimRight(S);
+      Dec(Stats.SpacesTrimmed, Length(S));
+    end;
     dst.Add(S);
   end;
 end;
 
-function TMainForm.ConvertLine(const Line: string): string;
+function TMainForm.ConvertLine(const Line: string; var Stats: TStats): string;
 var
   I, J, Stop: Integer;
 begin
@@ -131,6 +164,7 @@ begin
   begin
     if Line[I] = #9 then
       begin
+        Inc(Stats.tabs);
         Stop := ((J - 1) div FTabSize + 1) * FTabSize + 1;
         while (J < Stop) do
         begin

@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'Untab'
   ClientHeight = 336
-  ClientWidth = 635
+  ClientWidth = 1126
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,7 +17,7 @@ object MainForm: TMainForm
   object Splitter1: TSplitter
     Left = 0
     Top = 244
-    Width = 635
+    Width = 1126
     Height = 3
     Cursor = crVSplit
     Align = alBottom
@@ -27,28 +27,38 @@ object MainForm: TMainForm
   object lbFiles: TListBox
     Left = 0
     Top = 0
-    Width = 635
+    Width = 1126
     Height = 184
     Align = alClient
     ItemHeight = 13
     TabOrder = 0
+    ExplicitWidth = 635
   end
   object memoLog: TMemo
     Left = 0
     Top = 247
-    Width = 635
+    Width = 1126
     Height = 89
     Align = alBottom
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Courier New'
+    Font.Style = []
+    ParentFont = False
     TabOrder = 1
+    WordWrap = False
+    ExplicitWidth = 635
   end
   object Panel1: TPanel
     Left = 0
     Top = 184
-    Width = 635
+    Width = 1126
     Height = 60
     Align = alBottom
     BevelEdges = []
     TabOrder = 2
+    ExplicitWidth = 635
     object Label1: TLabel
       Left = 8
       Top = 13
