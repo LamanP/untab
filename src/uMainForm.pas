@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, uFileDropper;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls;
 
 type
   TStats = record
@@ -14,7 +14,7 @@ type
     SpacesTrimmed: Integer;
   end;
 
-  TMainForm = class(TForm, IFileReceiver)
+  TMainForm = class(TForm)
     lbFiles: TListBox;
     Splitter1: TSplitter;
     memoLog: TMemo;
@@ -30,16 +30,13 @@ type
     procedure btnGoClick(Sender: TObject);
     procedure BtnBrowseClick(Sender: TObject);
   private
-    FFileDropHandler: IFileDropHandler;
     FTabSize: Integer;
-    procedure DropFiles(Sender: IFileDropHandler; Files: TStrings);
+    procedure AcceptFiles( var msg : TMessage ); message WM_DROPFILES;
     function Convert(const Filename: string; var Stats: TStats): TStats; overload;
     procedure Convert(src, dst: TStrings; var Stats: TStats); overload;
     function ConvertLine(const Line: string; var Stats: TStats): string;
   protected
     procedure CreateWnd; override;
-  public
-    constructor Create(AOwner: TComponent); override;
   end;
 
 var
@@ -48,6 +45,32 @@ var
 implementation
 
 {$R *.dfm}
+
+uses
+  ShellAPI;
+
+{ TMainForm }
+
+procedure TMainForm.AcceptFiles(var msg: TMessage);
+var
+  I, FileDragCount: integer;
+  acFileName : array [0..MAX_PATH] of char;
+begin
+  FileDragCount := DragQueryFile(msg.WParam, $FFFFFFFF, acFileName, MAX_PATH);
+
+  lbFiles.Items.BeginUpdate;
+  try
+    for I := 0 to FileDragCount-1 do
+    begin
+      DragQueryFile( msg.WParam, I,acFileName, MAX_PATH );
+      lbFiles.Items.Add(acFileName);
+    end;
+  finally
+    lbFiles.Items.EndUpdate;
+  end;
+
+  DragFinish( msg.WParam );
+end;
 
 procedure TMainForm.BtnBrowseClick(Sender: TObject);
 begin
@@ -80,23 +103,6 @@ begin
     ]));
   end;
   memoLog.Lines.Add(Format(SDone, [stats.files, stats.lines, stats.tabs, stats.SpacesTrimmed]));
-end;
-
-constructor TMainForm.Create(AOwner: TComponent);
-begin
-  FFileDropHandler := GetFileDropHandler(Self);
-  inherited;
-end;
-
-procedure TMainForm.DropFiles(Sender: IFileDropHandler; Files: TStrings);
-begin
-  lbFiles.Items.AddStrings(Files);
-end;
-
-procedure TMainForm.CreateWnd;
-begin
-  inherited;
-  FFileDropHandler.SetWindowHandle(Handle);
 end;
 
 // Returns the delta in stats
@@ -180,4 +186,11 @@ begin
   end;
 end;
 
+procedure TMainForm.CreateWnd;
+begin
+  inherited;
+  DragAcceptFiles( Handle, True );
+end;
+
 end.
+

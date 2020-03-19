@@ -32,7 +32,6 @@ object MainForm: TMainForm
     Align = alClient
     ItemHeight = 13
     TabOrder = 0
-    ExplicitWidth = 635
   end
   object memoLog: TMemo
     Left = 0
@@ -48,7 +47,6 @@ object MainForm: TMainForm
     ParentFont = False
     TabOrder = 1
     WordWrap = False
-    ExplicitWidth = 635
   end
   object Panel1: TPanel
     Left = 0
@@ -58,7 +56,6 @@ object MainForm: TMainForm
     Align = alBottom
     BevelEdges = []
     TabOrder = 2
-    ExplicitWidth = 635
     object Label1: TLabel
       Left = 8
       Top = 13
