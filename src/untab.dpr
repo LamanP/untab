@@ -3,7 +3,8 @@ program untab;
 uses
   Vcl.Forms,
   uMainForm in 'uMainForm.pas' {MainForm},
-  uUntabEngine in 'uUntabEngine.pas';
+  uUntabEngine in 'uUntabEngine.pas',
+  uIconTray in 'uIconTray.pas';
 
 {$R *.res}
 

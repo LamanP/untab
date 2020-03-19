@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, uIconTray;
 
 type
   TStats = record
@@ -29,14 +29,20 @@ type
     CbTrim: TCheckBox;
     procedure btnGoClick(Sender: TObject);
     procedure BtnBrowseClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     FTabSize: Integer;
+    FIconTray: TIconTrayApplication;
     procedure AcceptFiles( var msg : TMessage ); message WM_DROPFILES;
     function Convert(const Filename: string; var Stats: TStats): TStats; overload;
     procedure Convert(src, dst: TStrings; var Stats: TStats); overload;
     function ConvertLine(const Line: string; var Stats: TStats): string;
+    procedure ShowFromIconTray(Sender: TObject);
   protected
     procedure CreateWnd; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
   end;
 
 var
@@ -50,6 +56,39 @@ uses
   ShellAPI;
 
 { TMainForm }
+
+constructor TMainForm.Create(AOwner: TComponent);
+begin
+  inherited;
+  FIconTray := TIconTrayApplication.Create(Self);
+  FIconTray.OnClick := ShowFromIconTray;
+  FIconTray.OwnerForm := Self;
+  FIconTray.Show;
+  FIconTray.Icon := Application.Icon;
+  Visible := True;
+end;
+
+procedure TMainForm.CreateWnd;
+begin
+  inherited;
+  DragAcceptFiles( Handle, True );
+end;
+
+destructor TMainForm.Destroy;
+begin
+  FreeAndNil(FIconTray);
+  inherited;
+end;
+
+procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  Action := caNone;
+end;
+
+procedure TMainForm.ShowFromIconTray(Sender: TObject);
+begin
+  FIconTray.ShowOwnerForm;
+end;
 
 procedure TMainForm.AcceptFiles(var msg: TMessage);
 var
@@ -184,12 +223,6 @@ begin
         Inc(J);
       end;
   end;
-end;
-
-procedure TMainForm.CreateWnd;
-begin
-  inherited;
-  DragAcceptFiles( Handle, True );
 end;
 
 end.
